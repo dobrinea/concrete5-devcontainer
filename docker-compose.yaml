@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  cli:
+    build:
+      context: cli
+      dockerfile: Dockerfile
+      args:
+        - PHP_VERSION=${PHP_VERSION}
+        - USERNAME=${REMOTE_USER}
+        - USER_UID=${USER_UID}
+        - USER_GID=${USER_GID}
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker-host.sock
+      - ..:/workspaces/laravel
+
+  # fpm:
+  #   build: fpm
+  #   volumes:
+  #     - ..:/workspaces/laravel
+  #   user: 1000:1000
+
+  # nginx:
+  #   build: nginx
+  #   volumes:
+  #     - ..:/workspaces/laravel
+  #   ports:
+  #     - 80:80
+  #   depends_on:
+  #     - fpm
+
+  # postgres:
+  #   image: postgres:13-alpine
+  #   environment:
+  #     POSTGRES_DB: laravel
+  #     POSTGRES_USER: root
+  #     POSTGRES_HOST_AUTH_METHOD: trust
+
+  # redis:
+  #   image: redis:6.2-alpine
+
