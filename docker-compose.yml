@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  cli:
+    build:
+      context: cli
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+        USERNAME: ${USERNAME-vscode}
+        USER_UID: ${USER_UID-1000}
+        USER_GID: ${USER_GID-1000}
+        TIME_ZONE: ${TIME_ZONE-UTC}
+        LOCALE: ${LOCALE-C}
+    tty: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker-host.sock
+      - ../:${LOCAL_WORKSPACE_FOLDER}
+      - ./cli/config/php.ini:/usr/local/etc/php/conf.d/99-php.ini
+    working_dir: ${LOCAL_WORKSPACE_FOLDER}
+
+  fpm:
+    build:
+      context: fpm
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+        USER_UID: ${USER_UID-1000}
+        USER_GID: ${USER_GID-1000}
+        TIME_ZONE: ${TIME_ZONE-UTC}
+        LOCALE: ${LOCALE-C}
+    user: 1000:1000
+    volumes:
+      - ./fpm/config/php.ini:/usr/local/etc/php/php.ini
+      - ./fpm/config/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+      - ../:${LOCAL_WORKSPACE_FOLDER}
+    working_dir: ${LOCAL_WORKSPACE_FOLDER}
+
+  nginx:
+    build: nginx
+    ports:
+      - "${IP_ADDRESS_SETTING}80:80"
+      - "${IP_ADDRESS_SETTING}443:443"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates
+      - ../.docker/nginx/log:/var/log/nginx
+      - ../:${LOCAL_WORKSPACE_FOLDER}
+    environment:
+      TZ: ${TIME_ZONE-UTC}
+      LOCAL_WORKSPACE_FOLDER: ${LOCAL_WORKSPACE_FOLDER}
+
+  composer:
+    restart: 'no'
+    image: composer/composer
+    environment:
+      TZ: ${TIME_ZONE-UTC}
+    user: 1000:1000
+    volumes:
+      - ../:${LOCAL_WORKSPACE_FOLDER}
+    working_dir: ${LOCAL_WORKSPACE_FOLDER}
+
+  mysql:
+    image: mysql/mysql-server:8.0
+    ports:
+      - "${IP_ADDRESS_SETTING}3306:3306"
+    volumes:
+      - mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD-docker}
+      MYSQL_USER: ${DB_USERNAME-docker}
+      MYSQL_PASSWORD: ${DB_PASSWORD-docker}
+      MYSQL_DATABASE: ${DB_DATABASE-docker}
+      TZ: ${TIME_ZONE-UTC}
+    # command:
+    #   - mysqld
+    #   - --character-set-server=utf8mb4
+    #   - --collation-server=utf8mb4_ja_0900_as_cs_ks
+    #   - --default-time-zone=+09:00
+
+
+volumes:
+  mysql:
+    driver: local
