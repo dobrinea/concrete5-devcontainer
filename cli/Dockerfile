@@ -1,5 +1,5 @@
 ARG PHP_VERSION=8.0
-FROM php:${PHP_VERSION}-cli
+FROM php:${PHP_VERSION}-cli-bullseye
 
 # [Option] Install zsh
 ARG INSTALL_ZSH="true"
@@ -13,11 +13,9 @@ ARG USE_MOBY="true"
 # Enable new "BUILDKIT" mode for Docker CLI
 ENV DOCKER_BUILDKIT=1
 
-# Install needed packages and setup non-root user. Use a separate RUN statement to add your
-# own dependencies. A user of "automatic" attempts to reuse an user ID if one already exists.
-ARG USERNAME=automatic
+ARG USERNAME=vscode
 ARG USER_UID=1000
-ARG USER_GID=$USER_UID
+ARG USER_GID=${USER_UID}
 COPY library-scripts/*.sh /tmp/library-scripts/
 
 RUN apt-get update \
@@ -27,11 +25,44 @@ RUN apt-get update \
     # Clean up
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
 
-# Setting the ENTRYPOINT to docker-init.sh will configure non-root access 
+ARG LOCALE=en_US.UTF-8
+ARG TIME_ZONE=UTC
+
+ENV PKG="bash-completion curl dnsutils git imagemagick jq locales mariadb-client postgresql-client rsync tree unzip vim wget zip"
+ENV PKG_LIB="libc-client-dev libfreetype6-dev libjpeg62-turbo-dev libkrb5-dev libmagickwand-dev libonig-dev libpng-dev libpq-dev libxslt-dev libzip-dev"
+ENV DEBIAN_FRONTEND noninteractive
+ENV LANG=${LOCALE}
+ENV TZ=${TIME_ZONE}
+
+RUN apt-get update \
+    && apt-get install -y $PKG $PKG_LIB \
+    && pecl install imagick xdebug-3.1.3 \
+    && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
+    && docker-php-ext-configure gd \
+        --with-jpeg=/usr/include/ \
+        --with-freetype=/usr/include/ \
+    && docker-php-ext-enable imagick xdebug \
+    && docker-php-ext-install bcmath gd imap intl pdo_mysql xml zip \
+    #
+    # locale
+    && sed -i -E "s/# (${LOCALE})/\1/" /etc/locale.gen \
+    && locale-gen ${LOCALE} \
+    && dpkg-reconfigure locales \
+    && update-locale LANG=${LOCALE} \
+    #
+    # timezone
+    && ln -snf /usr/share/zoneinfo/${TIME_ZONE} /etc/localtime && echo ${TIME_ZONE} > /etc/timezone
+
+COPY config/aliases.sh /home/${USERNAME}/aliases.sh
+
+RUN sed -i 's/\r//' /home/${USERNAME}/aliases.sh && \
+    chown ${USER_UID}:${USER_GID} /home/${USERNAME}/aliases.sh && \
+    echo "" >> /home/${USERNAME}/.bashrc && \
+    echo "# Load Custom Aliases" >> /home/${USERNAME}/.bashrc && \
+    echo "source ~/aliases.sh" >> /home/${USERNAME}/.bashrc && \
+	echo "" >> /home/${USERNAME}/.bashrc
+
+# Setting the ENTRYPOINT to docker-init.sh will configure non-root access
 # to the Docker socket. The script will also execute CMD as needed.
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]
-
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
