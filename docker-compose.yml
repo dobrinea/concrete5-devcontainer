@@ -69,8 +69,9 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD-docker}
       MYSQL_DATABASE: ${DB_DATABASE-docker}
       TZ: ${TIME_ZONE-UTC}
-    # command:
-    #   - mysqld
+    command:
+      - mysqld
+      - --default-authentication-plugin=mysql_native_password
     #   - --character-set-server=utf8mb4
     #   - --collation-server=utf8mb4_ja_0900_as_cs_ks
     #   - --default-time-zone=+09:00

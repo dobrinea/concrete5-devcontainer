@@ -41,7 +41,27 @@
                     "port": 9003,
                 }
            ]
-        }
+        },
+        "sqltools.connections": [
+            {
+                "mysqlOptions": {
+                    "authProtocol": "default"
+                },
+                "previewLimit": 50,
+                "server": "mysql",
+                "port": 3306,
+                "driver": "MySQL",
+                "name": "MySQL",
+                "database": "docker",
+                "username": "docker",
+                "password": "docker"
+            },
+        ],
+        "telemetry.enableCrashReporter": false,
+        "telemetry.enableTelemetry": false,
+        "workbench.enableExperiments": false,
+        "workbench.settings.enableNaturalLanguageSearch": false,
+        "mdb.sendTelemetry": false
         
 	},
 
@@ -58,5 +78,7 @@
 		"mhutchie.git-graph",
 		"emilast.LogFileHighlighter",
         "neilbrayfield.php-docblocker",
+        "mtxr.sqltools",
+		"mtxr.sqltools-driver-mysql",
     ]
 }
